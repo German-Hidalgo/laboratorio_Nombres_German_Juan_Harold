@@ -2,18 +2,26 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : 5 displays SH8103AS - desplazamiento de nombres
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
   ******************************************************************************
   */
 /* USER CODE END Header */
-
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
-#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -23,68 +31,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
-/*
- * ============================================================
- * CONEXIONES STM32F103C8T6 -> SH8103AS
- * ============================================================
- *
- * PA0  -> pin 1  -> segmento A
- * PA1  -> pin 18 -> segmento B
- * PA2  -> pin 16 -> segmento C
- * PA3  -> pin 13 -> segmento D
- * PA4  -> pin 10 -> segmento E
- * PA5  -> pin 9  -> segmento F
- * PA6  -> pin 8  -> segmento G
- * PA7  -> pin 4  -> segmento H
- * PA8  -> pin 3  -> segmento K
- * PA9  -> pin 2  -> segmento M
- * PA10 -> pin 17 -> segmento N
- * PA11 -> pin 15 -> segmento P
- * PC14 -> pin 14 -> segmento R
- * PA12 -> pin 6  -> segmento S
- * PC15 -> pin 7  -> segmento T
- * PA15 -> pin 5  -> segmento U
- *
- * PIN 11 DEL SH8103AS:
- *   COMUN del display -> transistor correspondiente.
- *
- * PIN 12 DEL SH8103AS:
- *   NO SE USA. DEJAR SIN CONECTAR.
- *
- * IMPORTANTE:
- * PA12 DEL STM32 NO ES el pin 12 del display.
- * PA12 DEL STM32 va al PIN 6 del SH8103AS (segmento S).
- */
-
-/* Bits internos para los 16 segmentos */
-#define SEG_A   (1U << 0)
-#define SEG_B   (1U << 1)
-#define SEG_C   (1U << 2)
-#define SEG_D   (1U << 3)
-#define SEG_E   (1U << 4)
-#define SEG_F   (1U << 5)
-#define SEG_G   (1U << 6)
-#define SEG_H   (1U << 7)
-#define SEG_K   (1U << 8)
-#define SEG_M   (1U << 9)
-#define SEG_N   (1U << 10)
-#define SEG_P   (1U << 11)
-#define SEG_R   (1U << 12)
-#define SEG_S   (1U << 13)
-#define SEG_T   (1U << 14)
-#define SEG_U   (1U << 15)
-
-/*
- * Seleccion de los 5 displays:
- *
- * Display 1 -> PB4
- * Display 2 -> PB3
- * Display 3 -> PB9
- * Display 4 -> PB1
- * Display 5 -> PB0
- */
-#define DISPLAY_MASK (GPIO_PIN_4 | GPIO_PIN_3 | GPIO_PIN_9 | GPIO_PIN_1 | GPIO_PIN_0)
 
 /* USER CODE END PD */
 
@@ -96,58 +42,29 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+int letras[26];
+int numeroDisplays = 5;
 
-uint16_t letras[26];
-
-const int numeroDisplays = 5;
-
-/*
- * Se agregan 5 espacios al inicio y al final para que
- * cada nombre entre completamente por Display 1,
- * avance hasta Display 5 y salga completamente.
- */
+// Textos completos con espacios al final para el barrido continuo
 char nombreReposo[] = "     ";
-char nombreJuan[]   = "     JUAN MANUEL BUITRAGO     ";
-char nombreGerman[] = "     GERMAN HIDALGO     ";
-char nombreHarold[] = "     HAROLD GONZALEZ     ";
+char nombreGerman[]   = "    GERMAN ALBERTO HIDALGO ALVARADO ";
+char nombreJuan[]  = "    JUAN MANUEL BUITRAGO LANCHEROS ";
+char nombreHarold[]  = "    HAROLD MAURICIO GONZALES MUNEVAR ";
 
-char *nombreActual = nombreReposo;
+char* nombreActual = nombreReposo;
 
 int longitud = 5;
 int token = 0;
-
-/*
- * Estados del pulsador:
- * 0 = reposo
- * 1 = JUAN MANUEL BUITRAGO
- * 2 = GERMAN HIDALGO
- * 3 = HAROLD GONZALEZ
- */
 int estadoNombre = 0;
-
-/*
- * Pines de los transistores en el mismo orden de los displays.
- */
-static const uint16_t displayPins[5] =
-{
-    GPIO_PIN_4,   /* Display 1 -> PB4 */
-    GPIO_PIN_3,   /* Display 2 -> PB3 */
-    GPIO_PIN_9,   /* Display 3 -> PB9 */
-    GPIO_PIN_1,   /* Display 4 -> PB1 */
-    GPIO_PIN_0    /* Display 5 -> PB0 */
-};
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-
 /* USER CODE BEGIN PFP */
-void mostrarLetra(uint16_t codigo);
+void mostrarLetra(int codigo);
 void definirLetras(void);
-uint16_t getLetra(char letra);
-void apagarDisplays(void);
+int getLetra(char letra);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -161,202 +78,122 @@ void apagarDisplays(void);
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
 
-  int displayActual = 0;
-  int aux = 0;
+  /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
 
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
+
+  /* USER CODE BEGIN Init */
+    int displayActual = 0;
+    int aux = 0;
+    int estadoBotonAnterior = 1; // 1 equivale a GPIO_PIN_SET
+    /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-
   /* USER CODE BEGIN 2 */
-
-  definirLetras();
-
-  nombreActual = nombreReposo;
-  longitud = strlen(nombreActual);
-
-  apagarDisplays();
-  mostrarLetra(0);
-
+  	  definirLetras();
+      nombreActual = nombreReposo; // Arranca en reposo (pantallas apagadas)
+      longitud = strlen(nombreActual);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
   while (1)
   {
     /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+	  /* USER CODE BEGIN 3 */
 
-    /*
-     * ============================================================
-     * 1. PULSADOR EN PC13
-     * ============================================================
-     *
-     * PC13 tiene PULL-UP interno:
-     * sin pulsar = HIGH
-     * pulsado    = LOW
-     */
-    if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET)
-    {
-        HAL_Delay(50);   /* anti-rebote */
+	        // 1. LECTURA DEL BOTÓN (Sin pausar el código)
+	        int estadoBotonActual = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
 
-        if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET)
-        {
-            estadoNombre++;
+	        // Si el botón se acaba de presionar (pasó de 1 a 0)
+	        if(estadoBotonActual == GPIO_PIN_RESET && estadoBotonAnterior == GPIO_PIN_SET){
 
-            if (estadoNombre > 3)
-            {
-                estadoNombre = 0;
-            }
+	            estadoNombre++;
+	            if(estadoNombre > 3) estadoNombre = 0; // Pasa de 3 (Profe) de nuevo a 0 (Reposo)
 
-            switch (estadoNombre)
-            {
-                case 0:
-                    nombreActual = nombreReposo;
-                    break;
+	            if(estadoNombre == 0)      nombreActual = nombreReposo;
+	            else if(estadoNombre == 1) nombreActual = nombreGerman;
+	            else if(estadoNombre == 2) nombreActual = nombreJuan;
+	            else if(estadoNombre == 3) nombreActual = nombreHarold;
 
-                case 1:
-                    nombreActual = nombreJuan;
-                    break;
+	            longitud = strlen(nombreActual);
+	            token = 0;
+	            aux = 0;
+	        }
+	        estadoBotonAnterior = estadoBotonActual; // Guarda el estado para el siguiente ciclo
 
-                case 2:
-                    nombreActual = nombreGerman;
-                    break;
+	        // 2. MULTIPLEXACIÓN LIMPIA
+	        // Apaga los transistores (PB5 a PB9)
+	        GPIOB->BSRR = (GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9) << 16;
+	        mostrarLetra(0);
 
-                case 3:
-                    nombreActual = nombreHarold;
-                    break;
+	        int index = (token + displayActual) % longitud;
+	        mostrarLetra(getLetra(nombreActual[index]));
 
-                default:
-                    nombreActual = nombreReposo;
-                    estadoNombre = 0;
-                    break;
-            }
+	        // Enciende el transistor de la pantalla actual (PB5 es display 0, PB9 es display 4)
+	        GPIOB->BSRR = (1 << (displayActual + 5));
 
-            longitud = strlen(nombreActual);
+	        HAL_Delay(1);
 
-            /* Reinicia el desplazamiento desde el principio */
-            token = 0;
-            aux = 0;
-            displayActual = 0;
+	        // 3. CONTROL DE DESPLAZAMIENTO FLUIDO
+	        displayActual++;
+	        if(displayActual >= numeroDisplays) {
+	            displayActual = 0;
+	            aux++;
 
-            /* Esperar hasta que se suelte el pulsador */
-            while (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET)
-            {
-                HAL_Delay(10);
-            }
-
-            HAL_Delay(50);   /* anti-rebote al soltar */
-        }
-    }
-
-    /*
-     * ============================================================
-     * 2. MULTIPLEXACION DE LOS 5 DISPLAYS
-     * ============================================================
-     */
-
-    /* Apagar todos los comunes antes de cambiar segmentos */
-    apagarDisplays();
-
-    /* Apagar todos los segmentos */
-    mostrarLetra(0);
-
-    /*
-     * Esta formula hace que el texto:
-     *
-     * Display 1 -> Display 2 -> Display 3 -> Display 4 -> Display 5
-     *
-     * Es decir, entra por el Display 1 y sale por el Display 5.
-     */
-    int index = (token + (numeroDisplays - 1 - displayActual)) % longitud;
-
-    /* Cargar la letra correspondiente */
-    mostrarLetra(getLetra(nombreActual[index]));
-
-    /* Encender solamente el transistor del display actual */
-    GPIOB->BSRR = displayPins[displayActual];
-
-    /* Tiempo de encendido de cada display */
-    HAL_Delay(1);
-
-    /*
-     * ============================================================
-     * 3. CONTROL DEL DESPLAZAMIENTO
-     * ============================================================
-     */
-    displayActual++;
-
-    if (displayActual >= numeroDisplays)
-    {
-        displayActual = 0;
-        aux++;
-
-        /*
-         * Velocidad de desplazamiento.
-         *
-         * Mayor numero = mas lento.
-         * Menor numero = mas rapido.
-         *
-         * 30 es un valor inicial razonable.
-         */
-        if (aux >= 30)
-        {
-            aux = 0;
-
-            if (estadoNombre != 0)
-            {
-                token++;
-
-                if (token >= longitud)
-                {
-                    token = 0;
-                }
-            }
-        }
-    }
-
-    /* USER CODE END 3 */
-  }
-}
-
+	            // Subimos a 150 para que no pase demasiado rápido
+	            if(aux >= 35){
+	                aux = 0;
+	                if(estadoNombre != 0){
+	                    token++;
+	                    if(token >= longitud) token = 0;
+	                }
+	            }
+	        }
+	      }
+	    /* USER CODE END 3 */
+      }
 /**
   * @brief System Clock Configuration
   * @retval None
   */
+
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
   }
 
-  RCC_ClkInitStruct.ClockType =
-      RCC_CLOCKTYPE_HCLK |
-      RCC_CLOCKTYPE_SYSCLK |
-      RCC_CLOCKTYPE_PCLK1 |
-      RCC_CLOCKTYPE_PCLK2;
-
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -377,135 +214,46 @@ static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-
-  /*
-   * PA15, PB3 y PB4 normalmente pertenecen a JTAG.
-   *
-   * Desactivamos JTAG pero mantenemos SWD activo,
-   * por lo que ST-LINK sigue funcionando por SWDIO/SWCLK.
-   */
+  // --- LIBERAR JTAG Y MANTENER SWD (ST-LINK) ACTIVO ---
   __HAL_RCC_AFIO_CLK_ENABLE();
   __HAL_AFIO_REMAP_SWJ_NOJTAG();
-
-  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
 
-  /*
-   * ============================================================
-   * ESTADO INICIAL DE LOS SEGMENTOS
-   * ============================================================
-   */
+  /*Configure GPIO pin Output Level para Segmentos A (PA0 a PA10) */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
+                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10, GPIO_PIN_RESET);
 
-  HAL_GPIO_WritePin(
-      GPIOA,
-      GPIO_PIN_0  |
-      GPIO_PIN_1  |
-      GPIO_PIN_2  |
-      GPIO_PIN_3  |
-      GPIO_PIN_4  |
-      GPIO_PIN_5  |
-      GPIO_PIN_6  |
-      GPIO_PIN_7  |
-      GPIO_PIN_8  |
-      GPIO_PIN_9  |
-      GPIO_PIN_10 |
-      GPIO_PIN_11 |
-      GPIO_PIN_12 |
-      GPIO_PIN_15,
-      GPIO_PIN_RESET
-  );
+  /*Configure GPIO pin Output Level para Segmentos B y Transistores (PB5-PB9) */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
+                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_12|GPIO_PIN_13
+                          |GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
 
-  HAL_GPIO_WritePin(
-      GPIOC,
-      GPIO_PIN_14 | GPIO_PIN_15,
-      GPIO_PIN_RESET
-  );
-
-  /*
-   * Los cinco transistores empiezan apagados.
-   */
-  HAL_GPIO_WritePin(
-      GPIOB,
-      DISPLAY_MASK,
-      GPIO_PIN_RESET
-  );
-
-  /*
-   * ============================================================
-   * GPIOA - SEGMENTOS
-   * ============================================================
-   *
-   * PA0-PA12 y PA15 son salidas.
-   *
-   * PA12 del STM32 se conecta al PIN 6 del display.
-   * El PIN 12 fisico del SH8103AS NO se conecta.
-   */
-  GPIO_InitStruct.Pin =
-      GPIO_PIN_0  |
-      GPIO_PIN_1  |
-      GPIO_PIN_2  |
-      GPIO_PIN_3  |
-      GPIO_PIN_4  |
-      GPIO_PIN_5  |
-      GPIO_PIN_6  |
-      GPIO_PIN_7  |
-      GPIO_PIN_8  |
-      GPIO_PIN_9  |
-      GPIO_PIN_10 |
-      GPIO_PIN_11 |
-      GPIO_PIN_12 |
-      GPIO_PIN_15;
-
+  /* Configuración de Puertos A */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
+                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*
-   * ============================================================
-   * PC14 Y PC15 - SEGMENTOS R Y T
-   * ============================================================
-   */
-  GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_15;
+  /* Configuración de Puertos B (Salidas) */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
+                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_12|GPIO_PIN_13
+                          |GPIO_PIN_14|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*
-   * ============================================================
-   * PC13 - PULSADOR
-   * ============================================================
-   */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  /* Configuración Botón en PB1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*
-   * ============================================================
-   * TRANSISTORES DE LOS 5 DISPLAYS
-   * ============================================================
-   *
-   * PB4 -> Display 1
-   * PB3 -> Display 2
-   * PB9 -> Display 3
-   * PB1 -> Display 4
-   * PB0 -> Display 5
-   */
-  GPIO_InitStruct.Pin = DISPLAY_MASK;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -514,237 +262,67 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void mostrarLetra(int codigo){
+    // 1. APAGAR TODOS los pines de segmentos en GPIOA y GPIOB
+    GPIOA->BSRR = (GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 |
+                   GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7 |
+                   GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10) << 16;
 
-/**
-  * @brief Apaga los cinco transistores de seleccion.
-  */
-void apagarDisplays(void)
-{
-    GPIOB->BSRR = ((uint32_t)DISPLAY_MASK << 16U);
+    GPIOB->BSRR = (GPIO_PIN_0 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15) << 16;
+
+    if(codigo == 0) return; // Si es espacio, apagado
+
+    // 2. ENCENDER los pines según los bits del código binario
+    if (codigo & (1 << 0))  GPIOA->BSRR = GPIO_PIN_0;   // Bit 0  -> Pin 1  (PA0)
+    if (codigo & (1 << 1))  GPIOA->BSRR = GPIO_PIN_1;   // Bit 1  -> Pin 2  (PA1)
+    if (codigo & (1 << 2))  GPIOA->BSRR = GPIO_PIN_2;   // Bit 2  -> Pin 3  (PA2)
+    if (codigo & (1 << 3))  GPIOA->BSRR = GPIO_PIN_3;   // Bit 3  -> Pin 4  (PA3)
+    if (codigo & (1 << 4))  GPIOA->BSRR = GPIO_PIN_4;   // Bit 4  -> Pin 5  (PA4)
+    if (codigo & (1 << 5))  GPIOA->BSRR = GPIO_PIN_5;   // Bit 5  -> Pin 6  (PA5)
+    if (codigo & (1 << 6))  GPIOA->BSRR = GPIO_PIN_6;   // Bit 6  -> Pin 7  (PA6)
+    if (codigo & (1 << 7))  GPIOA->BSRR = GPIO_PIN_7;   // Bit 7  -> Pin 8  (PA7)
+    if (codigo & (1 << 8))  GPIOB->BSRR = GPIO_PIN_0;   // Bit 8  -> Pin 9  (PB0)
+    if (codigo & (1 << 9))  GPIOA->BSRR = GPIO_PIN_10;  // Bit 9  -> Pin 10 (PA10)
+    if (codigo & (1 << 10)) GPIOA->BSRR = GPIO_PIN_9;   // Bit 10 -> Pin 11 (PA9)
+    if (codigo & (1 << 11)) GPIOA->BSRR = GPIO_PIN_8;   // Bit 11 -> Pin 12 (PA8)
+    if (codigo & (1 << 12)) GPIOB->BSRR = GPIO_PIN_15;  // Bit 12 -> Pin 13 (PB15)
+    if (codigo & (1 << 13)) GPIOB->BSRR = GPIO_PIN_14;  // Bit 13 -> Pin 14 (PB14)
+    if (codigo & (1 << 14)) GPIOB->BSRR = GPIO_PIN_13;  // Bit 14 -> Pin 15 (PB13)
+    if (codigo & (1 << 15)) GPIOB->BSRR = GPIO_PIN_12;  // Bit 15 -> Pin 16 (PB12)
 }
 
-/**
-  * @brief Envia el patron de una letra a los 16 segmentos.
-  *
-  * SH8103AS de catodo comun:
-  * segmento HIGH = segmento encendido,
-  * siempre que el transistor del display correspondiente este activo.
-  */
-void mostrarLetra(uint16_t codigo)
-{
-    uint32_t mascaraA =
-        GPIO_PIN_0  |
-        GPIO_PIN_1  |
-        GPIO_PIN_2  |
-        GPIO_PIN_3  |
-        GPIO_PIN_4  |
-        GPIO_PIN_5  |
-        GPIO_PIN_6  |
-        GPIO_PIN_7  |
-        GPIO_PIN_8  |
-        GPIO_PIN_9  |
-        GPIO_PIN_10 |
-        GPIO_PIN_11 |
-        GPIO_PIN_12 |
-        GPIO_PIN_15;
+void definirLetras(){
+    for(int i = 0; i < 26; i++) letras[i] = 0;
 
-    /*
-     * Apagar todos los segmentos conectados a GPIOA.
-     */
-    GPIOA->BSRR = (mascaraA << 16U);
-
-    /*
-     * Apagar PC14 y PC15.
-     */
-    GPIOC->BSRR =
-        ((uint32_t)(GPIO_PIN_14 | GPIO_PIN_15) << 16U);
-
-    /*
-     * codigo = 0 corresponde a espacio.
-     */
-    if (codigo == 0)
-    {
-        return;
-    }
-
-    /*
-     * ============================================================
-     * BIT -> STM32 -> PIN SH8103AS
-     * ============================================================
-     */
-
-    if (codigo & SEG_A) GPIOA->BSRR = GPIO_PIN_0;   /* A -> PA0  -> pin 1  */
-    if (codigo & SEG_B) GPIOA->BSRR = GPIO_PIN_1;   /* B -> PA1  -> pin 18 */
-    if (codigo & SEG_C) GPIOA->BSRR = GPIO_PIN_2;   /* C -> PA2  -> pin 16 */
-    if (codigo & SEG_D) GPIOA->BSRR = GPIO_PIN_3;   /* D -> PA3  -> pin 13 */
-    if (codigo & SEG_E) GPIOA->BSRR = GPIO_PIN_4;   /* E -> PA4  -> pin 10 */
-    if (codigo & SEG_F) GPIOA->BSRR = GPIO_PIN_5;   /* F -> PA5  -> pin 9  */
-    if (codigo & SEG_G) GPIOA->BSRR = GPIO_PIN_6;   /* G -> PA6  -> pin 8  */
-    if (codigo & SEG_H) GPIOA->BSRR = GPIO_PIN_7;   /* H -> PA7  -> pin 4  */
-    if (codigo & SEG_K) GPIOA->BSRR = GPIO_PIN_8;   /* K -> PA8  -> pin 3  */
-    if (codigo & SEG_M) GPIOA->BSRR = GPIO_PIN_9;   /* M -> PA9  -> pin 2  */
-    if (codigo & SEG_N) GPIOA->BSRR = GPIO_PIN_10;  /* N -> PA10 -> pin 17 */
-    if (codigo & SEG_P) GPIOA->BSRR = GPIO_PIN_11;  /* P -> PA11 -> pin 15 */
-
-    if (codigo & SEG_R) GPIOC->BSRR = GPIO_PIN_14;  /* R -> PC14 -> pin 14 */
-
-    /*
-     * MUY IMPORTANTE:
-     * PA12 DEL STM32 VA AL PIN 6 DEL SH8103AS.
-     * NO VA AL PIN 12 DEL DISPLAY.
-     */
-    if (codigo & SEG_S) GPIOA->BSRR = GPIO_PIN_12;  /* S -> PA12 -> pin 6  */
-
-    if (codigo & SEG_T) GPIOC->BSRR = GPIO_PIN_15;  /* T -> PC15 -> pin 7  */
-    if (codigo & SEG_U) GPIOA->BSRR = GPIO_PIN_15;  /* U -> PA15 -> pin 5  */
+    letras['A'-65] = 0b1011010010011001;
+    letras['B'-65] = 0b1011011100100011;
+    letras['C'-65] = 0b1000001110001001;
+    letras['D'-65] = 0b1010011100100011;
+    letras['E'-65] = 0b1000001110011001;
+    letras['G'-65] = 0b1001011110001001;
+    letras['H'-65] = 0b0011010010011000;
+    letras['I'-65] = 0b1000001100100011;
+    letras['J'-65] = 0b1010011110000000;
+    letras['L'-65] = 0b0000001110001000;
+    letras['M'-65] = 0b0110010010001100;
+    letras['N'-65] = 0b0010110010001100;
+    letras['O'-65] = 0b1010011110001001;
+    letras['R'-65] = 0b1011100010011001;
+    letras['S'-65] = 0b1001011100011001;
+    letras['T'-65] = 0b1000000000100011;
+    letras['U'-65] = 0b0010011110001000;
+    letras['V'-65] = 0b0100000011001000;
+    letras['Z'-65] = 0b1100001101000001;
 }
 
-/**
-  * @brief Tabla completa A-Z para el display de 16 segmentos.
-  *
-  * Orden de bits:
-  * A B C D E F G H K M N P R S T U
-  *
-  * Los patrones corresponden al esquema de segmentos
-  * utilizado por este tipo de display alfanumerico.
-  */
-void definirLetras(void)
-{
-    for (int i = 0; i < 26; i++)
-    {
-        letras[i] = 0;
-    }
+int getLetra(char letra){
+    if(letra == ' ') return 0;
 
-    /* A */
-    letras['A' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_C | SEG_D |
-        SEG_G | SEG_H |
-        SEG_T | SEG_U;
+    // Convertimos a mayúscula por si acaso para evitar desbordes
+    if(letra >= 'a' && letra <= 'z') letra -= 32;
 
-    /* B */
-    letras['B' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_C | SEG_D |
-        SEG_E | SEG_F |
-        SEG_G | SEG_H |
-        SEG_T | SEG_U;
-
-    /* D */
-    letras['D' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_C | SEG_D |
-        SEG_E | SEG_F |
-        SEG_G | SEG_H;
-
-    /* E */
-    letras['E' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_E | SEG_F |
-        SEG_G | SEG_H |
-        SEG_T | SEG_U;
-
-    /* G */
-    letras['G' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_D |
-        SEG_E | SEG_F |
-        SEG_G | SEG_H |
-        SEG_U;
-
-    /* H */
-    letras['H' - 'A'] =
-        SEG_C | SEG_D |
-        SEG_G | SEG_H |
-        SEG_T | SEG_U;
-
-    /* I */
-    letras['I' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_E | SEG_F |
-        SEG_M | SEG_R;
-
-    /* J */
-    letras['J' - 'A'] =
-        SEG_C | SEG_D |
-        SEG_E | SEG_F |
-        SEG_G;
-
-    /* L */
-    letras['L' - 'A'] =
-        SEG_E | SEG_F |
-        SEG_G | SEG_H;
-
-    /* M */
-    letras['M' - 'A'] =
-        SEG_C | SEG_D |
-        SEG_G | SEG_H |
-        SEG_K | SEG_N;
-
-    /* N */
-    letras['N' - 'A'] =
-        SEG_C | SEG_D |
-        SEG_G | SEG_H |
-        SEG_K | SEG_P;
-
-    /* O */
-    letras['O' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_C | SEG_D |
-        SEG_E | SEG_F |
-        SEG_G | SEG_H;
-
-    /* R */
-    letras['R' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_C |
-        SEG_G | SEG_H |
-        SEG_T | SEG_U |
-        SEG_P;
-
-    /* T */
-    letras['T' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_M | SEG_R;
-
-    /* U */
-    letras['U' - 'A'] =
-        SEG_C | SEG_D |
-        SEG_E | SEG_F |
-        SEG_G | SEG_H;
-
-    /* Z */
-    letras['Z' - 'A'] =
-        SEG_A | SEG_B |
-        SEG_E | SEG_F |
-        SEG_N | SEG_S;
+    return letras[(int)(letra - 65)];
 }
-/**
-  * @brief Convierte una letra ASCII a su patron de segmentos.
-  */
-uint16_t getLetra(char letra)
-{
-    if (letra == ' ')
-    {
-        return 0;
-    }
-
-    /*
-     * Permite tambien minusculas por seguridad.
-     */
-    if ((letra >= 'a') && (letra <= 'z'))
-    {
-        letra = (char)(letra - 'a' + 'A');
-    }
-
-    if ((letra < 'A') || (letra > 'Z'))
-    {
-        return 0;
-    }
-
-    return letras[letra - 'A'];
-}
-
 /* USER CODE END 4 */
 
 /**
@@ -754,31 +332,26 @@ uint16_t getLetra(char letra)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-
+  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
-
   while (1)
   {
   }
-
   /* USER CODE END Error_Handler_Debug */
 }
-
 #ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
   * @param  file: pointer to the source file name
-  * @param  line: source line number
+  * @param  line: assert_param error line source number
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-
-  (void)file;
-  (void)line;
-
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

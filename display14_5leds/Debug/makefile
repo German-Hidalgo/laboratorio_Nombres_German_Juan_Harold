@@ -34,37 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := display14_5leds
+BUILD_ARTIFACT_NAME := nombres German
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-display14_5leds.elf \
+nombres\ German.elf \
 
 MAP_FILES += \
-display14_5leds.map \
+nombres\ German.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-display14_5leds.list \
-
-OBJCOPY_HEX += \
-display14_5leds.hex \
+nombres\ German.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: display14_5leds.elf secondary-outputs
+main-build: nombres\ German.elf secondary-outputs
 
 # Tool invocations
-display14_5leds.elf display14_5leds.map: $(OBJS) $(USER_OBJS) /Users/haroldmgonz/STM32CubeIDE/workspace_2.2.0/display14_5leds/STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "display14_5leds.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"/Users/haroldmgonz/STM32CubeIDE/workspace_2.2.0/display14_5leds/STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="display14_5leds.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+nombres\ German.elf nombres\ German.map: $(OBJS) $(USER_OBJS) /home/german/Descargas/nombres\ German/STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "nombres German.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"/home/german/Descargas/nombres German/STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="nombres German.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -73,22 +70,17 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-display14_5leds.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "display14_5leds.list"
-	@echo 'Finished building: $@'
-	@echo ' '
-
-display14_5leds.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "display14_5leds.hex"
+nombres\ German.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "nombres German.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) default.size.stdout display14_5leds.elf display14_5leds.hex display14_5leds.list display14_5leds.map
+	-$(RM) default.size.stdout nombres\ German.elf nombres\ German.list nombres\ German.map nombres\\ German.elf
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'
